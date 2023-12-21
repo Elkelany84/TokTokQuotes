@@ -1,0 +1,6 @@
+https://stackoverflow.com/questions/8849357/add-quotation-at-the-start-and-end-of-each-line-in-notepad
+
+
+ADD 22 ستبدأ وردية النهار بعد يومين
+ADD 5 ستبدأ وردية أول الليل بعد يومين
+ADD 12 ستبدأ وردية أخر الليل بعد يومين
