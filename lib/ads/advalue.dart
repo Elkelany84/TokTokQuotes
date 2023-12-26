@@ -3,6 +3,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:toktok_quote/ads/ad_helper.dart';
 
 class Advalue extends StatefulWidget {
+  const Advalue({Key? key}) : super(key: key);
+
   @override
   _AdvalueState createState() => _AdvalueState();
 }
@@ -20,7 +22,7 @@ class _AdvalueState extends State<Advalue> {
     // _content(context);
     _ad = BannerAd(
       adUnitId: AdHelper.bannerAdUnitId,
-      request: AdRequest(),
+      request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(onAdLoaded: (_) {
         // isLoaded = true;
@@ -43,13 +45,13 @@ class _AdvalueState extends State<Advalue> {
   Widget checkForAd() {
     if (isLoaded == true) {
       return Container(
-        child: AdWidget(ad: _ad!),
         width: _ad!.size.width.toDouble(),
         height: _ad!.size.height.toDouble(),
         alignment: Alignment.center,
+        child: AdWidget(ad: _ad!),
       );
     } else {
-      return CircularProgressIndicator(
+      return const CircularProgressIndicator(
           color: Color.fromRGBO(202, 249, 243, 0.9));
     }
   }

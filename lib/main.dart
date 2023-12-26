@@ -1,5 +1,8 @@
 // import 'dart:math';
 
+import 'dart:io';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 // import 'package:toktok_quote/ads/advalue.dart';
@@ -13,12 +16,42 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 // import 'package:toktok_quote/models/sqldb.dart';
 // import 'package:toktok_quote/showsaved.dart';
 import 'package:get/get.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:toktok_quote/models/localNotifications.dart';
 
 // import 'package:shared_preferences/shared_preferences.dart';
 // import 'package:toktok_quote/showsaved.dart';
 
-void main() {
+final navigatorKey = GlobalKey<NavigatorState>();
+FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Platform.isAndroid
+      ? await Firebase.initializeApp(
+          options: const FirebaseOptions(
+            apiKey: "AIzaSyDLfPGfqwSBiyogHWxEoIzFtamqW7XWo-Y",
+            appId: "1:629751083785:android:7306c254f2e54c6cd5d9d8",
+            messagingSenderId: "629751083785",
+            projectId: "toktokquote",
+          ),
+        )
+      : await Firebase.initializeApp();
+
+  await LocalNotifications.init();
+
+  //  handle in terminated state
+  var initialNotification =
+      await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+  if (initialNotification?.didNotificationLaunchApp == true) {
+    // LocalNotifications.onClickNotification.stream.listen((event) {
+    Future.delayed(const Duration(seconds: 1), () {
+      // print(event);
+      navigatorKey.currentState!.pushNamed('/another',
+          arguments: initialNotification?.notificationResponse?.payload);
+    });
+  }
   // final CounterController _counterController = Get.put(CounterController());
 
   MobileAds.instance.initialize();
@@ -61,7 +94,7 @@ class MyApp extends StatelessWidget {
 
 // class _MyHomePageState extends State<MyHomePage> {
 //   final CounterController _counterController = Get.put(CounterController());
-  
+
 //   SqlDb sqlDb = SqlDb();
 
 //   // bool isLoading = true;
@@ -286,24 +319,15 @@ class MyApp extends StatelessWidget {
 //             ),
 //           ),
 //         ),
-     
+
 //     );
 //   }
 // }
-
-
-
-
-
-
-
-
 
 // import 'package:flutter/material.dart';
 // import 'package:toktok_quote/homepage.dart';
 // import 'package:flutter_localizations/flutter_localizations.dart';
 // // import 'package:get/get.dart';
-
 
 // void main() {
 //   runApp(const MyApp());

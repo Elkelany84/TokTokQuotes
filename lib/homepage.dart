@@ -474,18 +474,13 @@
 //   }
 // }
 
-
-
-
-
-
-
 import 'dart:math';
 
 // import 'package:cron/cron.dart';
 import 'package:flutter/material.dart';
 
 import 'package:toktok_quote/ads/advalue.dart';
+import 'package:toktok_quote/models/localNotifications.dart';
 import 'package:toktok_quote/models/quotes.dart';
 
 import 'package:share/share.dart';
@@ -495,10 +490,14 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:toktok_quote/models/sqldb.dart';
 import 'package:toktok_quote/showsaved.dart';
 import 'package:get/get.dart';
-import 'package:toktok_quote/models/goldnotfiapi.dart';
+import 'package:toktok_quote/widgets/addQuote.dart';
+// import 'package:toktok_quote/models/goldnotfiapi.dart';
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+  const MyHomePage({
+    Key? key,
+  }) : super(key: key);
+
   // final String title;
 
   @override
@@ -506,6 +505,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  String? quote;
   // final CounterController _counterController = Get.find();
   final CounterController _counterController = Get.put(CounterController());
 
@@ -529,6 +529,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     // _counterController.readData();
     readData();
+    ScheduledFunction();
     // GoldNotificationApi.init(initScheduled: true);
     // listenNotification();
     super.initState();
@@ -537,6 +538,28 @@ class _MyHomePageState extends State<MyHomePage> {
     //   body: text,
     //   payload: 'Delay.abs',
     // );
+  }
+
+  //Scheduled Notifications
+
+  ScheduledFunction() {
+    int number = rnd.nextInt(quotes.length);
+    text = quotes[number];
+    LocalNotifications.showScheduleNotification(
+        title: "", body: text, payload: "This is schedule data");
+  }
+
+  //  to listen to any notification clicked or not
+  listenToNotifications() {
+    print("Listening to notification");
+    LocalNotifications.onClickNotification.stream.listen((event) {
+      print(event);
+      // Navigator.pushNamed(context, '/another', arguments: event);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ShowSaved()),
+      );
+    });
   }
 
   //  void listenNotification() {
@@ -571,6 +594,28 @@ class _MyHomePageState extends State<MyHomePage> {
     final double screenWidth = screenInfo.size.width;
 
     return Scaffold(
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButton: FloatingActionButton(
+        foregroundColor: Color.fromRGBO(0, 166, 156, 1),
+        backgroundColor: Color.fromRGBO(255, 241, 0, 1),
+        elevation: 10.0,
+        child: Icon(Icons.add),
+        onPressed: () {
+          showModalBottomSheet(
+            isScrollControlled: true,
+            context: context,
+            builder: (context) => SingleChildScrollView(
+              child: Container(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom),
+                  child: AddQuote(quote: quote),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
       appBar: AppBar(
         leading: IconButton(
           icon:
@@ -578,7 +623,7 @@ class _MyHomePageState extends State<MyHomePage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ShowSaved()),
+              MaterialPageRoute(builder: (context) => const ShowSaved()),
             );
           },
         ),
@@ -677,15 +722,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     height: screenHeight / 15,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        primary:
-                            const Color.fromRGBO(255, 241, 0, 1), // background
-                        onPrimary: const Color.fromRGBO(0, 166, 156, 1),
+                        foregroundColor: const Color.fromRGBO(0, 166, 156, 1),
+                        backgroundColor: const Color.fromRGBO(255, 241, 0, 1),
                       ),
                       onPressed: () {
                         setState(() {
                           int number = rnd.nextInt(quotes.length);
                           text = quotes[number];
-            
+
                           text = (text);
                           isClicked = false;
                         });
@@ -740,12 +784,12 @@ class _MyHomePageState extends State<MyHomePage> {
                         } else {
                           print('NOTHING TO SHOW HERE++++++++++++++');
                         }
-            
+
                         isClicked == false
                             ? ScaffoldMessenger.of(context)
                                 .showSnackBar(snackBarFav)
                             : null;
-            
+
                         setState(() {
                           // readFav();
                           // _counterController.myfavorites.add(response);
@@ -763,8 +807,11 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                     ),
                   ],
-                ),const SizedBox(height: 7,),
-                Advalue(),
+                ),
+                const SizedBox(
+                  height: 7,
+                ),
+                const Advalue(),
               ],
             ),
           ),

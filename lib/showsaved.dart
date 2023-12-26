@@ -368,6 +368,8 @@ import 'package:toktok_quote/models/sqldb.dart';
 // import 'package:get/get.dart';
 
 class ShowSaved extends StatefulWidget {
+  const ShowSaved({Key? key}) : super(key: key);
+
   @override
   State<ShowSaved> createState() => _ShowSavedState();
 }
