@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class AddQuote extends StatelessWidget {
@@ -35,6 +35,7 @@ class AddQuote extends StatelessWidget {
             TextField(
               controller: _textController,
               autofocus: true,
+              decoration: InputDecoration(),
               // textDirection: TextDirection.rtl,
             ),
             Container(
