@@ -32,11 +32,17 @@ class AddQuote extends StatelessWidget {
                   decoration: TextDecoration.underline),
               textAlign: TextAlign.start,
             ),
-            TextField(
-              controller: _textController,
-              autofocus: true,
-              decoration: InputDecoration(),
-              // textDirection: TextDirection.rtl,
+            Container(
+              padding: EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                  border: Border.all(),
+                  borderRadius: BorderRadius.circular(10)),
+              child: TextField(
+                controller: _textController,
+                autofocus: true,
+                decoration: const InputDecoration(border: InputBorder.none),
+                // textDirection: TextDirection.rtl,
+              ),
             ),
             Container(
               width: double.infinity,

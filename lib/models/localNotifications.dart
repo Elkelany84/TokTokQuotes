@@ -82,7 +82,7 @@ class LocalNotifications {
         2,
         title,
         body,
-        tz.TZDateTime.now(tz.local).add(const Duration(days: 3)),
+        tz.TZDateTime.now(tz.local).add(const Duration(days: 2)),
         const NotificationDetails(
             android: AndroidNotificationDetails(
                 'channel 3', 'your channel name',
