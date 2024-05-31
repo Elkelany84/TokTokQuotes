@@ -476,20 +476,18 @@
 
 import 'dart:math';
 
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:clipboard/clipboard.dart';
 // import 'package:cron/cron.dart';
 import 'package:flutter/material.dart';
-
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart';
+import 'package:share/share.dart';
 import 'package:toktok_quote/ads/advalue.dart';
 import 'package:toktok_quote/models/localNotifications.dart';
 import 'package:toktok_quote/models/quotes.dart';
-
-import 'package:share/share.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:clipboard/clipboard.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:toktok_quote/models/sqldb.dart';
 import 'package:toktok_quote/showsaved.dart';
-import 'package:get/get.dart';
 import 'package:toktok_quote/widgets/addQuote.dart';
 // import 'package:toktok_quote/models/goldnotfiapi.dart';
 
@@ -594,29 +592,61 @@ class _MyHomePageState extends State<MyHomePage> {
     final double screenWidth = screenInfo.size.width;
 
     return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
-      floatingActionButton: FloatingActionButton(
-        foregroundColor: Color.fromRGBO(0, 166, 156, 1),
-        backgroundColor: Color.fromRGBO(255, 241, 0, 1),
-        elevation: 10.0,
-        child: Icon(Icons.add),
-        onPressed: () {
-          showModalBottomSheet(
-            isScrollControlled: true,
-            context: context,
-            builder: (context) => SingleChildScrollView(
-              child: Container(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).viewInsets.bottom),
-                  child: AddQuote(quote: quote),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+      // floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      // floatingActionButton: Padding(
+      //   padding: const EdgeInsets.only(bottom: 50.0),
+      //   child: FloatingActionButton(
+      //     foregroundColor: Color.fromRGBO(0, 166, 156, 1),
+      //     backgroundColor: Color.fromRGBO(255, 241, 0, 1),
+      //     elevation: 10.0,
+      //     child: Icon(Icons.add),
+      //     onPressed: () {
+      //       showModalBottomSheet(
+      //         isScrollControlled: true,
+      //         context: context,
+      //         builder: (context) => SingleChildScrollView(
+      //           child: Container(
+      //             child: Padding(
+      //               padding: EdgeInsets.only(
+      //                   bottom: MediaQuery.of(context).viewInsets.bottom),
+      //               child: AddQuote(quote: quote),
+      //             ),
+      //           ),
+      //         ),
+      //       );
+      //     },
+      //   ),
+      // ),
       appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () {
+              showModalBottomSheet(
+                isScrollControlled: true,
+                context: context,
+                builder: (context) => SingleChildScrollView(
+                  child: Container(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).viewInsets.bottom),
+                      child: AddQuote(quote: quote),
+                    ),
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.add,
+              color: Color.fromRGBO(
+                0,
+                166,
+                156,
+                1,
+              ),
+              size: 28,
+            ),
+          )
+        ],
         leading: IconButton(
           icon:
               const Icon(Icons.favorite, color: Color.fromRGBO(0, 166, 156, 1)),

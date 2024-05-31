@@ -61,11 +61,13 @@ class AddQuote extends StatelessWidget {
                   final f = DateFormat(' dd-MM-yyyy', 'ar');
                   await FirebaseFirestore.instance
                       .collection('Quotes')
-                      .doc(
-                          '${_textController.text} ${f.format(DateTime.fromMillisecondsSinceEpoch(DateTime.now().toUtc().millisecondsSinceEpoch))}')
+                      .doc(f.format(DateTime.fromMillisecondsSinceEpoch(
+                          DateTime.now().toUtc().millisecondsSinceEpoch)))
                       .set({
                         'name': _textController.text,
                         // 'rev': _textController.text,
+                        "date": f.format(DateTime.fromMillisecondsSinceEpoch(
+                            DateTime.now().toUtc().millisecondsSinceEpoch)),
                         // 'date': DateTime.now().toUtc().millisecondsSinceEpoch,
                         // 'val':
                         //     '$quote ${f.format(DateTime.fromMillisecondsSinceEpoch(DateTime.now().toUtc().millisecondsSinceEpoch))}',
