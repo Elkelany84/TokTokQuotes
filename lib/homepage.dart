@@ -482,9 +482,9 @@ import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:share/share.dart';
 import 'package:toktok_quote/ads/advalue.dart';
-import 'package:toktok_quote/models/localNotifications.dart';
 import 'package:toktok_quote/models/quotes.dart';
 import 'package:toktok_quote/models/sqldb.dart';
 import 'package:toktok_quote/showsaved.dart';
@@ -523,14 +523,21 @@ class _MyHomePageState extends State<MyHomePage> {
     return response;
   }
 
+//InterstitialAd
+  late InterstitialAd ad;
+
+  bool isLoaded = false;
   @override
   void initState() {
     // _counterController.readData();
     readData();
-    ScheduledFunction();
+    initAd();
+
+    // ScheduledFunction();
     // GoldNotificationApi.init(initScheduled: true);
     // listenNotification();
     super.initState();
+
     // GoldNotificationApi.editedShowScheduledNotification(
     //   title: 'كلام تكاتك',
     //   body: text,
@@ -538,37 +545,75 @@ class _MyHomePageState extends State<MyHomePage> {
     // );
   }
 
+//test adUnitId: "ca-app-pub-3940256099942544/1033173712",
+  void initAd() {
+    InterstitialAd.load(
+        adUnitId: "ca-app-pub-5674077285757727/8322710786",
+        request: AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(onAdLoaded: (rAd) {
+          ad = rAd;
+          setState(() {
+            isLoaded = true;
+          });
+          ad.fullScreenContentCallback =
+              FullScreenContentCallback(onAdDismissedFullScreenContent: (ad) {
+            ad.dispose();
+            setState(() {
+              isLoaded = false;
+            });
+            //do what you want after ad is dismissed
+            // print('AD is Dismissed');
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ShowSaved()),
+            );
+          }, onAdFailedToShowFullScreenContent: (ad, error) {
+            ad.dispose();
+          });
+        }, onAdFailedToLoad: ((error) {
+          // print(error.message);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ShowSaved()),
+          );
+          ad.dispose();
+          setState(() {
+            isLoaded = false;
+          });
+        })));
+  }
   //Scheduled Notifications
 
-  ScheduledFunction() {
-    int number = rnd.nextInt(quotes.length);
-    text = quotes[number];
-    LocalNotifications.showScheduleNotification(
-        title: "", body: text, payload: "This is schedule data");
-  }
+  // ScheduledFunction() {
+  //   int number = rnd.nextInt(quotes.length);
+  //   text = quotes[number];
+  //   LocalNotifications.showScheduleNotification(
+  //       title: "", body: text, payload: "This is schedule data");
+  // }
 
   //  to listen to any notification clicked or not
-  listenToNotifications() {
-    print("Listening to notification");
-    LocalNotifications.onClickNotification.stream.listen((event) {
-      print(event);
-      // Navigator.pushNamed(context, '/another', arguments: event);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ShowSaved()),
-      );
-    });
-  }
+  // listenToNotifications() {
+  //   print("Listening to notification");
+  //   LocalNotifications.onClickNotification.stream.listen((event) {
+  //     print(event);
+  //     // Navigator.pushNamed(context, '/another', arguments: event);
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => const ShowSaved()),
+  //     );
+  //   });
+  // }
 
   //  void listenNotification() {
   //   GoldNotificationApi.onNotifications.stream.listen(onClickedNotification);
   // }
 
-  void onClickedNotification(String? payload) => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const MyHomePage(),
-        ),
-      );
+  // void onClickedNotification(String? payload) => Navigator.of(context).push(
+  //       MaterialPageRoute(
+  //         builder: (context) => const MyHomePage(),
+  //       ),
+  //     );
   // final cron = Cron();
 
   bool isClicked = false;
@@ -651,10 +696,18 @@ class _MyHomePageState extends State<MyHomePage> {
           icon:
               const Icon(Icons.favorite, color: Color.fromRGBO(0, 166, 156, 1)),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ShowSaved()),
-            );
+            if (isLoaded) {
+              ad.show();
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ShowSaved()),
+              );
+            }
+            // Navigator.push(
+            //   context,
+            //   MaterialPageRoute(builder: (context) => const FullPageAd()),
+            // );
           },
         ),
 
@@ -785,7 +838,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         Share.share(text);
                       },
                       icon: const FaIcon(
-                        FontAwesomeIcons.shareAlt,
+                        FontAwesomeIcons.shareNodes,
                         color: Color.fromRGBO(0, 166, 156, 1),
                       ),
                     ),

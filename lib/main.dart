@@ -1,30 +1,32 @@
 // import 'dart:math';
 
 import 'dart:io';
+import 'dart:math';
 
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:cron/cron.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-// import 'package:toktok_quote/ads/advalue.dart';
-import 'package:toktok_quote/homepage.dart';
-// import 'package:toktok_quote/models/quotes.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-
 // import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 // import 'package:auto_size_text/auto_size_text.dart';
 // import 'package:toktok_quote/models/sqldb.dart';
 // import 'package:toktok_quote/showsaved.dart';
 import 'package:get/get.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:toktok_quote/models/localNotifications.dart';
+// import 'package:toktok_quote/models/quotes.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+// import 'package:toktok_quote/ads/advalue.dart';
+import 'package:toktok_quote/homepage.dart';
+import 'package:toktok_quote/models/quotes.dart';
 
 // import 'package:shared_preferences/shared_preferences.dart';
 // import 'package:toktok_quote/showsaved.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
-FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+// FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+//     FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,23 +40,56 @@ void main() async {
           ),
         )
       : await Firebase.initializeApp();
+  WidgetsFlutterBinding.ensureInitialized();
 
-  await LocalNotifications.init();
+  AwesomeNotifications().initialize(
+      null, // icon for your app notification
+      [
+        NotificationChannel(
+            channelKey: 'key1',
+            channelName: 'Proto Coders Point',
+            channelDescription: "Notification example",
+            defaultColor: Color(0XFF9050DD),
+            ledColor: Colors.white,
+            playSound: true,
+            enableLights: true,
+            enableVibration: true)
+      ]);
+
+  // await LocalNotifications.init();
 
   //  handle in terminated state
-  var initialNotification =
-      await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
-  if (initialNotification?.didNotificationLaunchApp == true) {
-    // LocalNotifications.onClickNotification.stream.listen((event) {
-    Future.delayed(const Duration(seconds: 1), () {
-      // print(event);
-      navigatorKey.currentState!.pushNamed('/another',
-          arguments: initialNotification?.notificationResponse?.payload);
-    });
-  }
+  // var initialNotification =
+  //     await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+  // if (initialNotification?.didNotificationLaunchApp == true) {
+  //   // LocalNotifications.onClickNotification.stream.listen((event) {
+  //   Future.delayed(const Duration(seconds: 1), () {
+  //     // print(event);
+  //     navigatorKey.currentState!.pushNamed('/another',
+  //         arguments: initialNotification?.notificationResponse?.payload);
+  //   });
+  // }
   // final CounterController _counterController = Get.put(CounterController());
 
   MobileAds.instance.initialize();
+  final cron = Cron();
+  cron.schedule(Schedule.parse('10 10 * * *'), () async {
+    // print("Print every 5 seconds");
+    String getRandomElement(List<String> list) {
+      final random = Random();
+      int randomIndex = random.nextInt(list.length);
+      return list[randomIndex];
+    }
+
+    String randomElement = getRandomElement(quotes);
+    AwesomeNotifications().createNotification(
+        content: NotificationContent(
+            id: 1,
+            channelKey: 'key1',
+            // title: 'كلام تكاتك',
+            body: randomElement));
+  });
+
   runApp(const MyApp());
 }
 
