@@ -478,6 +478,7 @@ import 'dart:math';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:clipboard/clipboard.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 // import 'package:cron/cron.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -527,10 +528,38 @@ class _MyHomePageState extends State<MyHomePage> {
   late InterstitialAd ad;
 
   bool isLoaded = false;
+
+  void setupPushNotification() async {
+    final fcm = FirebaseMessaging.instance;
+    var token = await FirebaseMessaging.instance.getToken();
+    NotificationSettings settings = await fcm.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+    print('User granted permission: ${settings.authorizationStatus}');
+    await fcm.subscribeToTopic("randomQuotes"); // Add this line
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Got a message whilst in the foreground!');
+      print('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        print('Message also contained a notification: ${message.notification}');
+      }
+    });
+
+    print(token);
+  }
+
   @override
   void initState() {
     // _counterController.readData();
     readData();
+    setupPushNotification();
     initAd();
 
     // ScheduledFunction();

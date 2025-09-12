@@ -49,7 +49,7 @@ void main() async {
             channelKey: 'key1',
             channelName: 'Proto Coders Point',
             channelDescription: "Notification example",
-            defaultColor: Color(0XFF9050DD),
+            defaultColor: const Color(0XFF9050DD),
             ledColor: Colors.white,
             playSound: true,
             enableLights: true,
