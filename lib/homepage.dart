@@ -478,13 +478,14 @@ import 'dart:math';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:clipboard/clipboard.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
 // import 'package:cron/cron.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:share/share.dart';
+import 'package:share_plus/share_plus.dart';
+// import 'package:share/share.dart';
 import 'package:toktok_quote/ads/advalue.dart';
 import 'package:toktok_quote/models/quotes.dart';
 import 'package:toktok_quote/models/sqldb.dart';
@@ -529,37 +530,37 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool isLoaded = false;
 
-  void setupPushNotification() async {
-    final fcm = FirebaseMessaging.instance;
-    var token = await FirebaseMessaging.instance.getToken();
-    NotificationSettings settings = await fcm.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
-    print('User granted permission: ${settings.authorizationStatus}');
-    await fcm.subscribeToTopic("randomQuotes"); // Add this line
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
-
-      if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
-      }
-    });
-
-    print(token);
-  }
+  // void setupPushNotification() async {
+  //   final fcm = FirebaseMessaging.instance;
+  //   var token = await FirebaseMessaging.instance.getToken();
+  //   NotificationSettings settings = await fcm.requestPermission(
+  //     alert: true,
+  //     announcement: false,
+  //     badge: true,
+  //     carPlay: false,
+  //     criticalAlert: false,
+  //     provisional: false,
+  //     sound: true,
+  //   );
+  //   print('User granted permission: ${settings.authorizationStatus}');
+  //   await fcm.subscribeToTopic("randomQuotes"); // Add this line
+  //   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  //     print('Got a message whilst in the foreground!');
+  //     print('Message data: ${message.data}');
+  //
+  //     if (message.notification != null) {
+  //       print('Message also contained a notification: ${message.notification}');
+  //     }
+  //   });
+  //
+  //   print(token);
+  // }
 
   @override
   void initState() {
     // _counterController.readData();
     readData();
-    setupPushNotification();
+    // setupPushNotification();
     initAd();
 
     // ScheduledFunction();
@@ -864,7 +865,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     IconButton(
                       onPressed: () {
-                        Share.share(text);
+                        // Share.share(text);
+                        _shareLabInfo(text);
                       },
                       icon: const FaIcon(
                         FontAwesomeIcons.shareNodes,
@@ -929,6 +931,12 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
+    );
+  }
+
+  void _shareLabInfo(String labData) {
+    Share.share(
+      'labData',
     );
   }
 }

@@ -3,8 +3,8 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:cron/cron.dart';
+// import 'package:awesome_notifications/awesome_notifications.dart';
+// import 'package:cron/cron.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -42,19 +42,19 @@ void main() async {
       : await Firebase.initializeApp();
   WidgetsFlutterBinding.ensureInitialized();
 
-  AwesomeNotifications().initialize(
-      null, // icon for your app notification
-      [
-        NotificationChannel(
-            channelKey: 'key1',
-            channelName: 'Proto Coders Point',
-            channelDescription: "Notification example",
-            defaultColor: const Color(0XFF9050DD),
-            ledColor: Colors.white,
-            playSound: true,
-            enableLights: true,
-            enableVibration: true)
-      ]);
+  // AwesomeNotifications().initialize(
+  //     null, // icon for your app notification
+  //     [
+  //       NotificationChannel(
+  //           channelKey: 'key1',
+  //           channelName: 'Proto Coders Point',
+  //           channelDescription: "Notification example",
+  //           defaultColor: const Color(0XFF9050DD),
+  //           ledColor: Colors.white,
+  //           playSound: true,
+  //           enableLights: true,
+  //           enableVibration: true)
+  //     ]);
 
   // await LocalNotifications.init();
 
@@ -72,23 +72,6 @@ void main() async {
   // final CounterController _counterController = Get.put(CounterController());
 
   MobileAds.instance.initialize();
-  final cron = Cron();
-  cron.schedule(Schedule.parse('10 10 * * *'), () async {
-    // print("Print every 5 seconds");
-    String getRandomElement(List<String> list) {
-      final random = Random();
-      int randomIndex = random.nextInt(list.length);
-      return list[randomIndex];
-    }
-
-    String randomElement = getRandomElement(quotes);
-    AwesomeNotifications().createNotification(
-        content: NotificationContent(
-            id: 1,
-            channelKey: 'key1',
-            // title: 'كلام تكاتك',
-            body: randomElement));
-  });
 
   runApp(const MyApp());
 }
