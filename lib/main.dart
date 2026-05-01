@@ -17,9 +17,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 // import 'package:toktok_quote/models/quotes.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
 // import 'package:toktok_quote/ads/advalue.dart';
 import 'package:toktok_quote/homepage.dart';
 import 'package:toktok_quote/models/quotes.dart';
+
+import 'controller/favorites_provider.dart';
 
 // import 'package:shared_preferences/shared_preferences.dart';
 // import 'package:toktok_quote/showsaved.dart';
@@ -72,8 +75,17 @@ void main() async {
   // final CounterController _counterController = Get.put(CounterController());
 
   MobileAds.instance.initialize();
-
-  runApp(const MyApp());
+// Load favorites before app starts
+  final favoritesProvider = FavoritesProvider();
+  await favoritesProvider.loadFavorites();
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => favoritesProvider),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
