@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:toktok_quote/models/quote_category.dart';
 
 import '../controller/favorites_provider.dart';
+import '../screens/premium_screen.dart';
 
 class CategorySelector extends StatelessWidget {
   const CategorySelector({Key? key}) : super(key: key);
@@ -65,7 +66,13 @@ class CategorySelector extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PremiumScreen()),
+              );
+            } ,
             child: const Text(
               'حسناً',
               style: TextStyle(

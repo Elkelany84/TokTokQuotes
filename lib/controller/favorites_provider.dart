@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:toktok_quote/models/quote_category.dart';
 import 'package:toktok_quote/models/sqldb.dart';
 
+import '../screens/premium_screen.dart';
+import '../services/purchase_service.dart';
+
 class AppProvider extends ChangeNotifier {
   final SqlDb _sqlDb = SqlDb();
 
@@ -38,15 +41,23 @@ class AppProvider extends ChangeNotifier {
 
   // ── Constants ────────────────────────────────────────────────────────────
   static const int _freeFavoritesLimit = 10;
-// Add to AppProvider
+
+  // ── Premium Status ────────────────────────────────────────────────────
   bool _isPremium = false;
   bool get isPremium => _isPremium;
+
+  /// Call on app start to check stored purchase status
+  Future<void> checkPremiumStatus() async {
+    _isPremium = await PurchaseService.checkPremiumStatus();
+    notifyListeners();
+  }
 
 // Call this after RevenueCat confirms purchase (coming later)
   void setPremium(bool value) {
     _isPremium = value;
     notifyListeners();
   }
+
 
   Future<void> toggleFavorite(String quote, BuildContext context) async {
     if (isSaved(quote)) {
@@ -123,7 +134,10 @@ class AppProvider extends ChangeNotifier {
                   ),
                   onPressed: () {
                     Navigator.pop(context);
-                    // TODO: open premium purchase screen (coming in premium step)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                    );
                   },
                   child: const Text(
                     'اشترك الآن',

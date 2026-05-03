@@ -1,6 +1,4 @@
 import 'dart:io';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +9,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:toktok_quote/controller/favorites_provider.dart';
 import 'package:toktok_quote/homepage.dart';
+import 'package:toktok_quote/services/purchase_service.dart';
 import 'package:toktok_quote/showsaved.dart';
 
 // ── Background message handler (must be top-level function) ───────────────────
@@ -47,7 +46,7 @@ final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Firebase init
+  // Firebase init
   await Firebase.initializeApp(
     options: Platform.isAndroid
         ? const FirebaseOptions(
@@ -59,23 +58,20 @@ void main() async {
         : null,
   );
 
-  // 2. Register background handler
+  // FCM background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // 3. Local notifications init
-  await _initLocalNotifications();
+  // RevenueCat init ← new
+  await PurchaseService.init();
 
-  // 4. FCM setup
-  await _initFCM();
-  // await updateExistingQuotes('wisdom');
-  // await deleteDuplicateQuotes();
-  // 5. Ads init
+  // Ads init
   await MobileAds.instance.initialize();
 
-  // 6. Provider init
+  // Provider init
   final appProvider = AppProvider();
   await appProvider.loadFavorites();
   await appProvider.fetchQuotes();
+  await appProvider.checkPremiumStatus(); // ← new
 
   runApp(
     MultiProvider(

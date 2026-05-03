@@ -7,12 +7,12 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:toktok_quote/ads/advalue.dart';
 import 'package:toktok_quote/models/sqldb.dart';
 import 'package:toktok_quote/showsaved.dart';
 import 'package:toktok_quote/widgets/addQuote.dart';
 import 'package:toktok_quote/widgets/category_selector.dart';
+import 'package:toktok_quote/widgets/share_sheet.dart';
 
 import 'controller/favorites_provider.dart';
 import 'models/quotes.dart';
@@ -273,10 +273,18 @@ class _MyHomePageState extends State<MyHomePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        // ── Share ── replace old IconButton with this:
         IconButton(
-          onPressed: () => Share.share(_text),
-          icon: const FaIcon(FontAwesomeIcons.shareNodes,
-              color: Color.fromRGBO(0, 166, 156, 1)),
+          onPressed: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => ShareSheet(quote: _text),
+          ),
+          icon: const FaIcon(
+            FontAwesomeIcons.shareNodes,
+            color: Color.fromRGBO(0, 166, 156, 1),
+          ),
         ),
         const SizedBox(width: 15),
         IconButton(
