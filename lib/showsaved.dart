@@ -10,7 +10,7 @@ class ShowSaved extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final favProvider = context.watch<FavoritesProvider>();
+    final favProvider = context.watch<AppProvider>();
     final favorites = favProvider.savedQuotes.toList();
 
     return Scaffold(
@@ -49,21 +49,31 @@ class ShowSaved extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(0, 166, 156, 1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '$count',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'ElMessiri',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
+            child: Consumer<AppProvider>(
+              builder: (context, provider, _) {
+                final count = provider.savedQuotes.length;
+                final isPremium = provider.isPremium;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    // turns red when near the limit
+                    color: !isPremium && count >= 8
+                        ? Colors.redAccent
+                        : const Color.fromRGBO(0, 166, 156, 1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isPremium ? '$count ⭐' : '$count / 10',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'ElMessiri',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -76,7 +86,7 @@ class ShowSaved extends StatelessWidget {
   Widget _buildList(
       BuildContext context,
       List<String> favorites,
-      FavoritesProvider favProvider,
+      AppProvider favProvider,
       ) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
@@ -92,14 +102,14 @@ class ShowSaved extends StatelessWidget {
       BuildContext context,
       String quote,
       int index,
-      FavoritesProvider favProvider,
+      AppProvider favProvider,
       ) {
     return Dismissible(
       key: Key(quote),
       direction: DismissDirection.endToStart,
       background: _buildDismissBackground(),
       onDismissed: (_) {
-        favProvider.toggleFavorite(quote);
+        favProvider.toggleFavorite(quote,context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('تم الحذف من المُفضلة'),
@@ -149,7 +159,7 @@ class ShowSaved extends StatelessWidget {
           ),
           trailing: IconButton(
             onPressed: () {
-              favProvider.toggleFavorite(quote);
+              favProvider.toggleFavorite(quote, context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('تم الحذف من المُفضلة'),

@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:clipboard/clipboard.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -11,9 +10,9 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:toktok_quote/ads/advalue.dart';
 import 'package:toktok_quote/models/sqldb.dart';
-import 'package:toktok_quote/providers/favorites_provider.dart';
 import 'package:toktok_quote/showsaved.dart';
 import 'package:toktok_quote/widgets/addQuote.dart';
+import 'package:toktok_quote/widgets/category_selector.dart';
 
 import 'controller/favorites_provider.dart';
 import 'models/quotes.dart';
@@ -31,11 +30,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final SqlDb _sqlDb = SqlDb();
   final Random _rnd = Random();
 
-  List<String> _onlineQuotes = [];
-  bool _quotesLoading = true;
   bool _adLoaded = false;
   String? _quote;
-
   String _text = 'اضغط بالراحة عشان تأخذ الخُلاصة';
 
   late InterstitialAd _ad;
@@ -45,12 +41,10 @@ class _MyHomePageState extends State<MyHomePage> {
     content: Text('تم النسخ للحافظة'),
     duration: Duration(seconds: 2),
   );
-
   static const _snackBarFav = SnackBar(
     content: Text('تم الإضافة للمُفضلة'),
     duration: Duration(seconds: 2),
   );
-
   static const _snackBarRemoved = SnackBar(
     content: Text('تم الحذف من المُفضلة'),
     duration: Duration(seconds: 2),
@@ -61,49 +55,43 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _loadFavorites();
-    _fetchOnlineQuotes();
     _initAd();
+
+    // ── Fetch quotes if not already loaded ──
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<AppProvider>();
+      if (provider.quotes.isEmpty && !provider.isLoading) {
+        provider.fetchQuotes();
+      }
+    });
   }
 
-  // ── Data Methods ───────────────────────────────────────────────────────
-
+  // ── Favorites ──────────────────────────────────────────────────────────
   Future<void> _loadFavorites() async {
     final response = await _sqlDb.readShort('favorites');
     _counterController.myfavorites.addAll(response);
     if (mounted) setState(() {});
   }
 
-  Future<void> _fetchOnlineQuotes() async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('onlineQuotes')
-          .orderBy('id')
-          .get();
-
-      final quotes =
-      snapshot.docs.map((doc) => doc['text'] as String).toList();
-
-      if (mounted) {
-        setState(() {
-          _onlineQuotes = quotes;
-          _quotesLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching quotes: $e');
-      if (mounted) setState(() => _quotesLoading = false);
-    }
-  }
-
+  // ── Quotes ─────────────────────────────────────────────────────────────
   void _pickRandomQuote() {
-    if (_onlineQuotes.isEmpty) return;
-    setState(() {
-      _text = _onlineQuotes[_rnd.nextInt(_onlineQuotes.length)];
-    });
+    // ✅ Reading from AppProvider — not local list
+    final quotes = context.read<AppProvider>().quotes;
+
+    if (quotes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا توجد حِكم في هذا التصنيف'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _text = quotes[_rnd.nextInt(quotes.length)]);
   }
 
-  // ── Ad Methods ─────────────────────────────────────────────────────────
-
+  // ── Ads ────────────────────────────────────────────────────────────────
   void _initAd() {
     InterstitialAd.load(
       adUnitId: 'ca-app-pub-5674077285757727/8322710786',
@@ -112,7 +100,6 @@ class _MyHomePageState extends State<MyHomePage> {
         onAdLoaded: (loadedAd) {
           _ad = loadedAd;
           setState(() => _adLoaded = true);
-
           _ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
@@ -138,15 +125,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _onFavoritesPressed() {
-    if (_adLoaded) {
-      _ad.show();
-    } else {
-      _navigateToSaved();
-    }
+    _adLoaded ? _ad.show() : _navigateToSaved();
   }
 
   // ── Build ──────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -171,8 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       leading: IconButton(
-        icon:
-        const Icon(Icons.favorite, color: Color.fromRGBO(0, 166, 156, 1)),
+        icon: const Icon(Icons.favorite, color: Color.fromRGBO(0, 166, 156, 1)),
         onPressed: _onFavoritesPressed,
       ),
       actions: [
@@ -186,24 +167,42 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildBody(Size size) {
+    // ✅ Watch AppProvider for loading state and quotes
+    final appProvider = context.watch<AppProvider>();
+
     return Container(
       height: double.infinity,
       color: const Color.fromRGBO(202, 249, 243, 0.9),
-      child: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildLogo(size),
-              _buildQuoteText(),
-              _buildRandomButton(size),
-              SizedBox(height: size.height / 17),
-              _buildActionRow(),
-              const SizedBox(height: 7),
-              const Advalue(),
-            ],
-          ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 12),
+
+            // ✅ Category selector
+            const CategorySelector(),
+
+            _buildLogo(size),
+
+            // ✅ Show loader or quote text
+            appProvider.isLoading
+                ? const SizedBox(
+                    height: 75,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color.fromRGBO(0, 166, 156, 1),
+                      ),
+                    ),
+                  )
+                : _buildQuoteText(),
+
+            _buildRandomButton(size, appProvider.isLoading),
+            SizedBox(height: size.height / 17),
+            _buildActionRow(),
+            const SizedBox(height: 7),
+            const Advalue(),
+          ],
         ),
       ),
     );
@@ -225,17 +224,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildQuoteText() {
-    if (_quotesLoading) {
-      return const SizedBox(
-        height: 75,
-        child: Center(
-          child: CircularProgressIndicator(
-            color: Color.fromRGBO(0, 166, 156, 1),
-          ),
-        ),
-      );
-    }
-
     return SizedBox(
       width: double.infinity,
       height: 75,
@@ -256,7 +244,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildRandomButton(Size size) {
+  Widget _buildRandomButton(Size size, bool isLoading) {
     return Padding(
       padding: EdgeInsets.only(top: size.height / 12),
       child: SizedBox(
@@ -267,7 +255,8 @@ class _MyHomePageState extends State<MyHomePage> {
             foregroundColor: const Color.fromRGBO(0, 166, 156, 1),
             backgroundColor: const Color.fromRGBO(255, 241, 0, 1),
           ),
-          onPressed: _quotesLoading ? null : _pickRandomQuote,
+          // ✅ Disabled while loading
+          onPressed: isLoading ? null : _pickRandomQuote,
           child: const Text(
             'خُلاصة الحِكمة',
             style: TextStyle(fontSize: 20, fontFamily: 'ElMessiri'),
@@ -278,52 +267,42 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildActionRow() {
-    // watch() — rebuilds only this widget when favorites change
-    final favProvider = context.watch<FavoritesProvider>();
+    final favProvider = context.watch<AppProvider>();
     final isSaved = favProvider.isSaved(_text);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // ── Share ──
         IconButton(
           onPressed: () => Share.share(_text),
-          icon: const FaIcon(
-            FontAwesomeIcons.shareNodes,
-            color: Color.fromRGBO(0, 166, 156, 1),
-          ),
+          icon: const FaIcon(FontAwesomeIcons.shareNodes,
+              color: Color.fromRGBO(0, 166, 156, 1)),
         ),
         const SizedBox(width: 15),
-
-        // ── Copy ──
         IconButton(
           onPressed: () => FlutterClipboard.copy(_text).then(
-                (_) => ScaffoldMessenger.of(context).showSnackBar(_snackBarCopy),
+            (_) => ScaffoldMessenger.of(context).showSnackBar(_snackBarCopy),
           ),
-          icon: const FaIcon(
-            FontAwesomeIcons.copy,
-            color: Color.fromRGBO(0, 166, 156, 1),
-          ),
+          icon: const FaIcon(FontAwesomeIcons.copy,
+              color: Color.fromRGBO(0, 166, 156, 1)),
         ),
         const SizedBox(width: 15),
-
-        // ── Favorite ──
         IconButton(
           onPressed: () {
-            context.read<FavoritesProvider>().toggleFavorite(_text);
-            ScaffoldMessenger.of(context).showSnackBar(
-              isSaved ? _snackBarRemoved : _snackBarFav,
-            );
+            context.read<AppProvider>().toggleFavorite(_text,context);
+            // Only show snackbar if it was actually saved/removed
+            // (dialog handles the cap case)
+            if (favProvider.isSaved(_text)) {
+              ScaffoldMessenger.of(context).showSnackBar(_snackBarRemoved);
+            } else if (favProvider.savedQuotes.length < 10 || favProvider.isPremium) {
+              ScaffoldMessenger.of(context).showSnackBar(_snackBarFav);
+            }
           },
           icon: isSaved
-              ? const Icon(
-            Icons.favorite,
-            color: Color.fromRGBO(0, 166, 156, 1),
-          )
-              : const FaIcon(
-            FontAwesomeIcons.heart,
-            color: Color.fromRGBO(0, 166, 156, 1),
-          ),
+              ? const Icon(Icons.favorite,
+                  color: Color.fromRGBO(0, 166, 156, 1))
+              : const FaIcon(FontAwesomeIcons.heart,
+                  color: Color.fromRGBO(0, 166, 156, 1)),
         ),
       ],
     );
@@ -335,9 +314,8 @@ class _MyHomePageState extends State<MyHomePage> {
       context: context,
       builder: (_) => SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
           child: AddQuote(quote: _quote),
         ),
       ),

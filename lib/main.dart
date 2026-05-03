@@ -1,388 +1,301 @@
-// import 'dart:math';
-
 import 'dart:io';
-import 'dart:math';
 
-// import 'package:awesome_notifications/awesome_notifications.dart';
-// import 'package:cron/cron.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
-// import 'package:auto_size_text/auto_size_text.dart';
-// import 'package:toktok_quote/models/sqldb.dart';
-// import 'package:toktok_quote/showsaved.dart';
 import 'package:get/get.dart';
-// import 'package:toktok_quote/models/quotes.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
-// import 'package:toktok_quote/ads/advalue.dart';
+import 'package:toktok_quote/controller/favorites_provider.dart';
 import 'package:toktok_quote/homepage.dart';
-import 'package:toktok_quote/models/quotes.dart';
+import 'package:toktok_quote/showsaved.dart';
 
-import 'controller/favorites_provider.dart';
+// ── Background message handler (must be top-level function) ───────────────────
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: Platform.isAndroid
+        ? const FirebaseOptions(
+      apiKey: "AIzaSyDLfPGfqwSBiyogHWxEoIzFtamqW7XWo-Y",
+      appId: "1:629751083785:android:7306c254f2e54c6cd5d9d8",
+      messagingSenderId: "629751083785",
+      projectId: "toktokquote",
+    )
+        : null,
+  );
+  debugPrint('Background message received: ${message.messageId}');
+}
 
-// import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:toktok_quote/showsaved.dart';
+// ── Local Notifications setup ─────────────────────────────────────────────────
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+FlutterLocalNotificationsPlugin();
+
+const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'إشعارات كلام تكاتك',
+  description: 'تُستخدم لعرض الإشعارات',
+  importance: Importance.high,
+  playSound: true,
+);
 
 final navigatorKey = GlobalKey<NavigatorState>();
-// FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-//     FlutterLocalNotificationsPlugin();
 
+// ── Main ──────────────────────────────────────────────────────────────────────
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Platform.isAndroid
-      ? await Firebase.initializeApp(
-          options: const FirebaseOptions(
-            apiKey: "AIzaSyDLfPGfqwSBiyogHWxEoIzFtamqW7XWo-Y",
-            appId: "1:629751083785:android:7306c254f2e54c6cd5d9d8",
-            messagingSenderId: "629751083785",
-            projectId: "toktokquote",
-          ),
-        )
-      : await Firebase.initializeApp();
-  WidgetsFlutterBinding.ensureInitialized();
 
-  // AwesomeNotifications().initialize(
-  //     null, // icon for your app notification
-  //     [
-  //       NotificationChannel(
-  //           channelKey: 'key1',
-  //           channelName: 'Proto Coders Point',
-  //           channelDescription: "Notification example",
-  //           defaultColor: const Color(0XFF9050DD),
-  //           ledColor: Colors.white,
-  //           playSound: true,
-  //           enableLights: true,
-  //           enableVibration: true)
-  //     ]);
+  // 1. Firebase init
+  await Firebase.initializeApp(
+    options: Platform.isAndroid
+        ? const FirebaseOptions(
+      apiKey: "AIzaSyDLfPGfqwSBiyogHWxEoIzFtamqW7XWo-Y",
+      appId: "1:629751083785:android:7306c254f2e54c6cd5d9d8",
+      messagingSenderId: "629751083785",
+      projectId: "toktokquote",
+    )
+        : null,
+  );
 
-  // await LocalNotifications.init();
+  // 2. Register background handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  //  handle in terminated state
-  // var initialNotification =
-  //     await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
-  // if (initialNotification?.didNotificationLaunchApp == true) {
-  //   // LocalNotifications.onClickNotification.stream.listen((event) {
-  //   Future.delayed(const Duration(seconds: 1), () {
-  //     // print(event);
-  //     navigatorKey.currentState!.pushNamed('/another',
-  //         arguments: initialNotification?.notificationResponse?.payload);
-  //   });
-  // }
-  // final CounterController _counterController = Get.put(CounterController());
+  // 3. Local notifications init
+  await _initLocalNotifications();
 
-  MobileAds.instance.initialize();
-// Load favorites before app starts
-  final favoritesProvider = FavoritesProvider();
-  await favoritesProvider.loadFavorites();
+  // 4. FCM setup
+  await _initFCM();
+  // await updateExistingQuotes('wisdom');
+  // await deleteDuplicateQuotes();
+  // 5. Ads init
+  await MobileAds.instance.initialize();
+
+  // 6. Provider init
+  final appProvider = AppProvider();
+  await appProvider.loadFavorites();
+  await appProvider.fetchQuotes();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => favoritesProvider),
+        ChangeNotifierProvider(create: (_) => appProvider),
       ],
       child: const MyApp(),
     ),
   );
 }
 
+// ── Local Notifications Init ──────────────────────────────────────────────────
+Future<void> _initLocalNotifications() async {
+  const AndroidInitializationSettings androidSettings =
+  AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const DarwinInitializationSettings iosSettings =
+  DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
+
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidSettings,
+    iOS: iosSettings,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(
+    initSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse response) {
+      // Handle notification tap while app is open/background
+      debugPrint('Notification tapped: ${response.payload}');
+      navigatorKey.currentState?.pushNamed('/saved');
+    },
+  );
+
+  // Create high-importance channel for Android
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation;
+  AndroidFlutterLocalNotificationsPlugin()
+      .createNotificationChannel(_channel);
+}
+
+// ── FCM Init ──────────────────────────────────────────────────────────────────
+Future<void> _initFCM() async {
+  final messaging = FirebaseMessaging.instance;
+
+  // 1. Request permission (iOS + Android 13+)
+  final settings = await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+  debugPrint('FCM permission: ${settings.authorizationStatus}');
+
+  // 2. Subscribe to topic so all users receive broadcast notifications
+  await messaging.subscribeToTopic('randomQuotes');
+
+  // 3. Get & print FCM token (useful for testing in Firebase console)
+  final token = await messaging.getToken();
+  debugPrint('FCM Token: $token');
+
+  // 4. Foreground messages — show local notification manually
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    final notification = message.notification;
+    final android = message.notification?.android;
+
+    if (notification != null && android != null) {
+      flutterLocalNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channel.id,
+            _channel.name,
+            channelDescription: _channel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+        ),
+        payload: message.data['route'],
+      );
+    }
+  });
+
+  // 5. App opened from background via notification tap
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    debugPrint('Notification opened app: ${message.messageId}');
+    navigatorKey.currentState?.pushNamed('/saved');
+  });
+
+  // 6. App launched from terminated state via notification tap
+  final initialMessage = await messaging.getInitialMessage();
+  if (initialMessage != null) {
+    debugPrint('App launched from notification: ${initialMessage.messageId}');
+    // Small delay to ensure navigator is ready
+    Future.delayed(const Duration(seconds: 1), () {
+      navigatorKey.currentState?.pushNamed('/saved');
+    });
+  }
+}
+
+/// Run ONCE then DELETE — removes duplicate docs keeping the first occurrence
+// Future<void> deleteDuplicateQuotes() async {
+//   const chunkSize = 500;
+//
+//   print('🔍 Fetching all documents...');
+//
+//   // 1. Fetch all documents ordered by id (keeps the original first)
+//   final snapshot = await FirebaseFirestore.instance
+//       .collection('onlineQuotes')
+//       .orderBy('id')
+//       .get();
+//
+//   final docs = snapshot.docs;
+//   print('📄 Total docs fetched: ${docs.length}');
+//
+//   // 2. Find duplicates — track seen texts, collect duplicate doc refs
+//   final Set<String> seenTexts = {};
+//   final List<DocumentReference> duplicatesToDelete = [];
+//
+//   for (final doc in docs) {
+//     final text = doc['text'] as String? ?? '';
+//
+//     if (seenTexts.contains(text)) {
+//       // Already seen this text → mark as duplicate
+//       duplicatesToDelete.add(doc.reference);
+//     } else {
+//       // First occurrence → keep it
+//       seenTexts.add(text);
+//     }
+//   }
+//
+//   print('🗑️ Duplicates found: ${duplicatesToDelete.length}');
+//
+//   if (duplicatesToDelete.isEmpty) {
+//     print('✅ No duplicates found — collection is clean');
+//     return;
+//   }
+//
+//   // 3. Delete in batches of 500
+//   for (var i = 0; i < duplicatesToDelete.length; i += chunkSize) {
+//     final batch = FirebaseFirestore.instance.batch();
+//     final chunk = duplicatesToDelete.sublist(
+//       i,
+//       (i + chunkSize).clamp(0, duplicatesToDelete.length),
+//     );
+//
+//     for (final docRef in chunk) {
+//       batch.delete(docRef);
+//     }
+//
+//     await batch.commit();
+//     print(
+//       '🗑️ Deleted chunk ${i ~/ chunkSize + 1} '
+//           '— ${chunk.length} docs (${i + chunk.length}/${duplicatesToDelete.length})',
+//     );
+//   }
+//
+//   print('✅ Done — ${duplicatesToDelete.length} duplicate(s) deleted');
+//   print('📄 Remaining docs: ${docs.length - duplicatesToDelete.length}');
+// }
+/// Run this ONCE to add category + isPremium to existing documents
+// Future<void> updateExistingQuotes(String category) async {
+//   const chunkSize = 500;
+//
+//   // 1. Fetch all existing documents
+//   final snapshot = await FirebaseFirestore.instance
+//       .collection('onlineQuotes')
+//       .orderBy('id')
+//       .get();
+//
+//   final docs = snapshot.docs;
+//   print('Total docs found: ${docs.length}');
+//
+//   // 2. Process in chunks of 500 (Firestore batch limit)
+//   for (var i = 0; i < docs.length; i += chunkSize) {
+//     final batch = FirebaseFirestore.instance.batch();
+//     final chunk = docs.sublist(i, (i + chunkSize).clamp(0, docs.length));
+//
+//     for (var j = 0; j < chunk.length; j++) {
+//       final docRef = chunk[j].reference;
+//
+//       batch.update(docRef, {
+//         'category': category,
+//         'isPremium': false,
+//       });
+//     }
+//
+//     await batch.commit();
+//     print('Updated chunk ${i ~/ chunkSize + 1} — docs ${i + 1} to ${i + chunk.length}');
+//   }
+//
+//   print('✅ All documents updated successfully');
+// }
+
+// ── App ───────────────────────────────────────────────────────────────────────
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
-  // This widget is the root of your application.
+
   @override
   Widget build(BuildContext context) {
-    return const GetMaterialApp(
+    return GetMaterialApp(
       title: 'كلام تكاتك',
       debugShowCheckedModeBanner: false,
-      // theme: ThemeData.light(),
-      localizationsDelegates: [
+      navigatorKey: navigatorKey,
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: [
-        Locale('ar', 'AE'),
+      supportedLocales: const [Locale('ar', 'AE')],
+      locale: const Locale('ar', 'AE'),
+      home: const MyHomePage(),
+      getPages: [
+        GetPage(name: '/saved', page: () => const ShowSaved()),
       ],
-      locale: Locale("ar", "AE"),
-      // theme: ThemeData(
-      //   primarySwatch: Colors.orange,
-      // ),
-      home: MyHomePage(),
     );
   }
 }
-
-// class MyHomePage extends StatefulWidget {
-//   const MyHomePage({Key? key, required this.title}) : super(key: key);
-//   final String title;
-
-//   @override
-//   State<MyHomePage> createState() => _MyHomePageState();
-// }
-
-// class _MyHomePageState extends State<MyHomePage> {
-//   final CounterController _counterController = Get.put(CounterController());
-
-//   SqlDb sqlDb = SqlDb();
-
-//   // bool isLoading = true;
-
-//   Future readData() async {
-//     //shortcut function
-//     List<Map> response = await sqlDb.readShort('favorites');
-//     // List<Map> response = await sqlDb.readData('SELECT * FROM notes');
-//     _counterController.myfavorites.addAll(response);
-//     // isLoading = false;
-//     if (mounted) {
-//       setState(() {});
-//     }
-//   }
-
-//   @override
-//   void initState() {
-//     readData();
-//     super.initState();
-//   }
-
-//   bool isClicked = false;
-//   var rnd = Random();
-//   var snackBar = const SnackBar(
-//     content: Text('تم النسخ للحافظة'),
-//   );
-
-//   String text = 'اضغط بالراحة عشان تأخذ الخُلاصة';
-
-//   @override
-//   Widget build(BuildContext context) {
-//     var screenInfo = MediaQuery.of(context);
-//     final double screenHeight = screenInfo.size.height;
-//     final double screenWidth = screenInfo.size.width;
-
-//     return Scaffold(
-//       appBar: AppBar(
-//         leading: IconButton(
-//           onPressed: () {},
-//           icon: IconButton(
-//             icon: const Icon(Icons.favorite),
-//             onPressed: () {
-//               Navigator.push(
-//                 context,
-//                 MaterialPageRoute(builder: (context) => ShowSaved()),
-//               );
-//             },
-//           ),
-//         ),
-//         centerTitle: true,
-//         elevation: 0.5,
-//         backgroundColor:
-//             // Colors.amber,
-//             const Color.fromRGBO(255, 241, 0, 1),
-//         title: Text(
-//           widget.title,
-//           style: const TextStyle(
-//             color: Color.fromRGBO(0, 166, 156, 1),
-//             fontSize: 26,
-//             fontFamily: 'ElMessiri',
-//           ),
-//         ),
-//         // leading: IconButton(
-//         //   onPressed: () {
-//         //     Navigator.push(
-//         //         context,
-//         //         MaterialPageRoute(
-//         //             builder: (context) => ShowSaved(valued: val)));
-//         //   },
-//         //   icon: const Icon(Icons.menu),
-//         // ),
-//       ),
-//       body:Container(
-//           color: const Color.fromRGBO(202, 249, 243, 0.9),
-//           // color: const Color.fromRGBO(13, 59, 85, 0.9),
-//           // color: Colors.white54,
-//           child: Center(
-//             child: Column(
-//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               children: [
-//                 // Steve Jobs Image
-//                 // Padding
-//                 Padding(
-//                   padding: EdgeInsets.only(
-//                     right: screenWidth / 5,
-//                     left: screenWidth / 5,
-//                     top: screenHeight / 11,
-//                   ),
-//                   // SizedBox
-//                   child:
-//                       // CircleAvatar(child: Image.asset('images/circleicon.png'),)
-//                       SizedBox(
-//                           width: screenWidth / 2,
-//                           height: screenHeight / 4,
-//                           child: Image.asset('assets/images/circleicon.png')),
-//                 ),
-//                 // Quotes Text
-//                 Padding(
-//                   padding: const EdgeInsets.only(right: 2.0, left: 2.0),
-//                   child: SizedBox(
-//                     width: double.infinity,
-//                     height: 100,
-//                     child: Center(
-//                       child: AutoSizeText(
-//                         text,
-//                         textAlign: TextAlign.center,
-//                         maxLines: 2,
-//                         maxFontSize: 22,
-//                         minFontSize: 21,
-//                         style: const TextStyle(
-//                             color: Color.fromRGBO(0, 166, 156, 1),
-//                             // color: Colors.amber,
-//                             // fontSize: 21,
-//                             fontFamily: 'ElMessiri',
-//                             fontWeight: FontWeight.bold),
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//                 // Padding(
-//                 //   padding: EdgeInsets.only(
-//                 //       top: screenHeight / 14,
-//                 //       left: screenWidth / 15,
-//                 //       right: screenWidth / 13),
-//                 //   child: Text(
-//                 //     text,
-//                 //     style: const TextStyle(
-//                 //         color: Color.fromRGBO(0, 166, 156, 1),
-//                 //         // color: Colors.amber,
-//                 //         fontSize: 22,
-//                 //         fontFamily: 'ElMessiri',
-//                 //         fontWeight: FontWeight.bold),
-//                 //     textDirection: TextDirection.rtl,
-//                 //   ),
-//                 // ),
-//                 // Elevated Button
-//                 Padding(
-//                   padding: EdgeInsets.only(top: screenHeight / 12),
-//                   child: SizedBox(
-//                     width: screenWidth / 2,
-//                     height: screenHeight / 15,
-//                     child: ElevatedButton(
-//                       style: ElevatedButton.styleFrom(
-//                         primary:
-//                             const Color.fromRGBO(255, 241, 0, 1), // background
-//                         onPrimary: const Color.fromRGBO(0, 166, 156, 1),
-//                       ),
-//                       onPressed: () {
-//                         setState(() {
-//                           int number = rnd.nextInt(quotes.length);
-//                           text = quotes[number];
-
-//                           text = (text);
-//                           isClicked = false;
-//                         });
-//                       },
-//                       child: const Text(
-//                         'خُلاصة الحِكمة',
-//                         style: TextStyle(
-//                           fontSize: 20,
-//                           fontFamily: 'ElMessiri',
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                 ),
-//                 SizedBox(
-//                   height: screenHeight / 17,
-//                 ),
-//                 Row(
-//                   mainAxisAlignment: MainAxisAlignment.center,
-//                   children: [
-//                     IconButton(
-//                       onPressed: () {
-//                         Share.share(text);
-//                       },
-//                       icon: const FaIcon(
-//                         FontAwesomeIcons.shareAlt,
-//                         color: Color.fromRGBO(0, 166, 156, 1),
-//                       ),
-//                     ),
-//                     const SizedBox(width: 15),
-//                     IconButton(
-//                       onPressed: () {
-//                         FlutterClipboard.copy(text).then(
-//                           (value) => ScaffoldMessenger.of(context)
-//                               .showSnackBar(snackBar),
-//                         );
-//                       },
-//                       icon: const FaIcon(
-//                         FontAwesomeIcons.copy,
-//                         color: Color.fromRGBO(0, 166, 156, 1),
-//                       ),
-//                     ),
-//                     const SizedBox(width: 15),
-//                     IconButton(
-//                       onPressed: () async {
-//                         int response = await sqlDb.insertShort('favorites', {
-//                           'title': text,
-//                           'category': "romance",
-//                         });
-//                         print('response================= + $response');
-//                         setState(() {
-//                           isClicked = true;
-//                         });
-//                       },
-//                       icon: isClicked
-//                           ? const Icon(
-//                               Icons.favorite,
-//                               color: Color.fromRGBO(0, 166, 156, 1),
-//                             )
-//                           : const FaIcon(
-//                               FontAwesomeIcons.heart,
-//                               color: Color.fromRGBO(0, 166, 156, 1),
-//                             ),
-//                     ),
-//                   ],
-//                 ),
-//                 Advalue(),
-//               ],
-//             ),
-//           ),
-//         ),
-
-//     );
-//   }
-// }
-
-// import 'package:flutter/material.dart';
-// import 'package:toktok_quote/homepage.dart';
-// import 'package:flutter_localizations/flutter_localizations.dart';
-// // import 'package:get/get.dart';
-
-// void main() {
-//   runApp(const MyApp());
-// }
-
-// class MyApp extends StatelessWidget {
-//   const MyApp({Key? key}) : super(key: key);
-
-//   // This widget is the root of your application.
-//   @override
-//   Widget build(BuildContext context) {
-//     return const MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       title: 'TokToK Talk',
-//       // theme: ThemeData.dark(),
-//        localizationsDelegates: [
-//         GlobalMaterialLocalizations.delegate,
-//         GlobalWidgetsLocalizations.delegate,
-//         GlobalCupertinoLocalizations.delegate,
-//       ],
-//       supportedLocales: [
-//          Locale('ar', 'AE'),
-//       ],
-//       locale: Locale("ar", "AE"),
-//       home: HomePage(),
-//     );
-//   }
-// }

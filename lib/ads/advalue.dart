@@ -6,34 +6,35 @@ class Advalue extends StatefulWidget {
   const Advalue({Key? key}) : super(key: key);
 
   @override
-  _AdvalueState createState() => _AdvalueState();
+  State<Advalue> createState() => _AdvalueState();
 }
 
 class _AdvalueState extends State<Advalue> {
   BannerAd? _ad;
-  bool? isLoaded;
-  bool checkval = false;
+  bool _isLoaded = false;
 
   @override
   void initState() {
     super.initState();
+    _loadAd();
+  }
 
-    // setData();
-    // _content(context);
+  void _loadAd() {
     _ad = BannerAd(
+      // ✅ Use test ID during development, switch to real ID for production
       adUnitId: AdHelper.bannerAdUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
-      listener: BannerAdListener(onAdLoaded: (_) {
-        // isLoaded = true;
-        setState(() {
-          isLoaded = true;
-        });
-      }, onAdFailedToLoad: (_, error) {
-        print('Ad failed to load with error: $error');
-      }),
-    );
-    _ad!.load();
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _isLoaded = true);
+        },
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('BannerAd failed to load: $error');
+          ad.dispose();
+        },
+      ),
+    )..load();
   }
 
   @override
@@ -42,24 +43,24 @@ class _AdvalueState extends State<Advalue> {
     super.dispose();
   }
 
-  Widget checkForAd() {
-    if (isLoaded == true) {
-      return Container(
-        width: _ad!.size.width.toDouble(),
-        height: _ad!.size.height.toDouble(),
-        alignment: Alignment.center,
-        child: AdWidget(ad: _ad!),
-      );
-    } else {
-      return const CircularProgressIndicator(
-          color: Color.fromRGBO(202, 249, 243, 0.9));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: checkForAd(),
+    if (!_isLoaded || _ad == null) {
+      return const SizedBox(
+        height: 50, // same height as AdSize.banner
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Color.fromRGBO(0, 166, 156, 1),
+            strokeWidth: 2,
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: _ad!.size.width.toDouble(),
+      height: _ad!.size.height.toDouble(),
+      child: AdWidget(ad: _ad!),
     );
   }
 }
