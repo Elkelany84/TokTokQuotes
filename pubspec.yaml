@@ -52,6 +52,9 @@ dependencies:
   firebase_messaging: ^15.0.0
   flutter_local_notifications: ^18.0.0
 #  cron: ^0.6.1
+  screenshot: ^2.1.0
+  image_gallery_saver: ^2.0.3
+  path_provider: ^2.1.2
   change_app_package_name: ^1.4.0
   flutter_automation: ^2.0.0
   flutter_launcher_icons: ^0.14.3
